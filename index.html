@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>박스 치수 계산기</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --border:#e2e4e9; --text:#1c1e21;
+    --muted:#6b7280; --accent:#2563eb; --accent-soft:#eaf0fe;
+    --danger:#dc2626; --mono:#374151;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#15171c; --panel:#1d2027; --border:#2b2f3a; --text:#e8e9ec;
+      --muted:#9aa0ac; --accent:#5b8dfc; --accent-soft:#1e2a44;
+      --danger:#f87171; --mono:#c7cad1;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.5;
+  }
+  header{
+    padding:24px 28px 8px;
+  }
+  header h1{ margin:0 0 4px; font-size:22px; }
+  header p{ margin:0; color:var(--muted); font-size:14px; }
+  main{
+    display:grid; grid-template-columns: 380px 1fr; gap:20px;
+    padding:20px 28px 40px; align-items:start;
+  }
+  @media (max-width: 860px){
+    main{ grid-template-columns: 1fr; }
+  }
+  .panel{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px;
+    padding:20px;
+  }
+  .panel h2{ font-size:15px; margin:0 0 14px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:13px; color:var(--muted); margin-bottom:5px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  input[type=number], select{
+    width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); font-size:14px;
+  }
+  input[type=number]:focus, select:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .unit-toggle{ display:flex; gap:6px; }
+  .unit-toggle button{
+    flex:1; padding:8px 0; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); font-size:13px; cursor:pointer;
+  }
+  .unit-toggle button.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .checkbox-row{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text); }
+  .checkbox-row input{ width:15px; height:15px; }
+  details{ margin-top:6px; }
+  details summary{ cursor:pointer; font-size:13px; color:var(--accent); }
+  details .field{ margin-top:12px; }
+
+  .result-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px; }
+  .stat{
+    background:var(--accent-soft); border-radius:10px; padding:12px 14px;
+  }
+  .stat .label{ font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .stat .value{ font-size:18px; font-weight:600; }
+  .stat .sub{ font-size:11px; color:var(--muted); margin-top:2px; }
+
+  svg{ width:100%; height:auto; display:block; background:var(--bg); border-radius:10px; border:1px solid var(--border); }
+  .diagram-wrap{ margin-top:6px; }
+  .diagram-caption{ font-size:12px; color:var(--muted); margin-top:8px; }
+
+  .error{ color:var(--danger); font-size:13px; margin-top:6px; }
+  .formula-box{
+    margin-top:18px; padding:14px 16px; background:var(--bg); border:1px solid var(--border);
+    border-radius:10px; font-size:12.5px; color:var(--mono);
+  }
+  .formula-box code{ display:block; margin:4px 0; }
+  .section-title{ font-size:13px; color:var(--muted); margin:18px 0 8px; font-weight:600; }
+  .yield-note{ font-size:12px; color:var(--muted); margin-top:6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>박스 치수 계산기</h1>
+  <p>내경(안쪽 치수)을 입력하면 상자 외경과 전개도(재단 치수)를 계산합니다.</p>
+</header>
+
+<main>
+  <section class="panel" id="input-panel">
+    <h2>1. 기본 정보</h2>
+
+    <div class="field">
+      <label>단위</label>
+      <div class="unit-toggle" id="unitToggle">
+        <button data-unit="mm" class="active">mm</button>
+        <button data-unit="cm">cm</button>
+        <button data-unit="inch">inch</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>상자 종류</label>
+      <select id="boxType">
+        <option value="rsc">조립상자 (4면 플랩형, 우체국 박스 스타일)</option>
+        <option value="tray">오픈 트레이 (뚜껑 없음)</option>
+        <option value="lidbase">뚜껑분리형 상자 (몸체+뚜껑 2단)</option>
+      </select>
+    </div>
+
+    <h2 style="margin-top:20px;">2. 내경 (안쪽 치수)</h2>
+    <div class="row3">
+      <div class="field">
+        <label>가로 (L)</label>
+        <input type="number" id="dimL" class="dim" value="300" min="0" step="0.1">
+      </div>
+      <div class="field">
+        <label>세로 (W)</label>
+        <input type="number" id="dimW" class="dim" value="200" min="0" step="0.1">
+      </div>
+      <div class="field">
+        <label id="heightLabel">높이 (H)</label>
+        <input type="number" id="dimH" class="dim" value="150" min="0" step="0.1">
+      </div>
+    </div>
+
+    <div class="field" id="lidHeightField" style="display:none;">
+      <label>뚜껑 높이 (H_lid)</label>
+      <input type="number" id="dimHLid" class="dim" value="40" min="0" step="0.1">
+    </div>
+
+    <h2 style="margin-top:20px;">3. 재질 / 여유값</h2>
+    <div class="row2">
+      <div class="field">
+        <label>재질 두께 (t)</label>
+        <input type="number" id="thickness" class="dim" value="5" min="0" step="0.1">
+      </div>
+      <div class="field" id="glueField">
+        <label>접착 여유 (glue tab)</label>
+        <input type="number" id="glueTab" class="dim" value="40" min="0" step="0.1">
+      </div>
+    </div>
+
+    <div class="field" id="clearanceField" style="display:none;">
+      <label>뚜껑 여유 틈 (몸체보다 크게, clearance)</label>
+      <input type="number" id="clearance" class="dim" value="1.5" min="0" step="0.1">
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="useThicknessComp" checked>
+      <label for="useThicknessComp" style="margin:0;">두께 보정 적용 (접히는 면에 재질 두께만큼 여유 추가)</label>
+    </div>
+
+    <details>
+      <summary>원단(원지) 규격으로 재단 수량 계산</summary>
+      <div class="row2">
+        <div class="field">
+          <label>원단 가로</label>
+          <input type="number" id="sheetW" class="dim" value="" min="0" step="0.1" placeholder="예: 1000">
+        </div>
+        <div class="field">
+          <label>원단 세로</label>
+          <input type="number" id="sheetH" class="dim" value="" min="0" step="0.1" placeholder="예: 1200">
+        </div>
+      </div>
+    </details>
+
+    <p class="error" id="errorMsg" style="display:none;"></p>
+  </section>
+
+  <section class="panel" id="output-panel">
+    <h2>계산 결과</h2>
+    <div class="result-grid" id="resultGrid"></div>
+
+    <div class="diagram-wrap">
+      <div class="section-title">전개도 미리보기</div>
+      <div id="diagramContainer"></div>
+      <p class="diagram-caption" id="diagramCaption"></p>
+    </div>
+
+    <div class="formula-box" id="formulaBox"></div>
+  </section>
+</main>
+
+<script>
+(function(){
+  const unitFactor = { mm:1, cm:10, inch:25.4 };
+  let currentUnit = 'mm';
+
+  const el = id => document.getElementById(id);
+  const dimIds = ['dimL','dimW','dimH','dimHLid','thickness','glueTab','clearance','sheetW','sheetH'];
+
+  // ---- unit switching (converts existing field values) ----
+  el('unitToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-unit]');
+    if(!btn) return;
+    const newUnit = btn.dataset.unit;
+    if(newUnit === currentUnit) return;
+    const oldFactor = unitFactor[currentUnit];
+    const newFactor = unitFactor[newUnit];
+    dimIds.forEach(id => {
+      const input = el(id);
+      if(input.value === '') return;
+      const v = parseFloat(input.value);
+      if(isNaN(v)) return;
+      const mmVal = v * oldFactor;
+      const converted = mmVal / newFactor;
+      input.value = round(converted, newUnit === 'inch' ? 3 : 2);
+    });
+    currentUnit = newUnit;
+    [...el('unitToggle').children].forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  });
+
+  el('boxType').addEventListener('change', () => {
+    const type = el('boxType').value;
+    el('lidHeightField').style.display = type === 'lidbase' ? 'block' : 'none';
+    el('clearanceField').style.display = type === 'lidbase' ? 'block' : 'none';
+    el('glueField').style.display = type === 'rsc' ? 'block' : 'none';
+    el('heightLabel').textContent = type === 'lidbase' ? '몸체 높이 (H)' : '높이 (H)';
+    render();
+  });
+
+  document.querySelectorAll('input, select').forEach(input => {
+    input.addEventListener('input', render);
+  });
+
+  function round(n, d){
+    const f = Math.pow(10, d);
+    return Math.round(n * f) / f;
+  }
+  function fmt(n){
+    const d = currentUnit === 'inch' ? 3 : 1;
+    return round(n, d).toLocaleString(undefined, {maximumFractionDigits:d}) + ' ' + currentUnit;
+  }
+  function num(id){
+    const v = parseFloat(el(id).value);
+    return isNaN(v) ? 0 : v;
+  }
+
+  function showError(msg){
+    const e = el('errorMsg');
+    if(!msg){ e.style.display='none'; e.textContent=''; return; }
+    e.style.display='block'; e.textContent = msg;
+  }
+
+  function calcRSC(){
+    const L = num('dimL'), W = num('dimW'), H = num('dimH');
+    const t = el('useThicknessComp').checked ? num('thickness') : 0;
+    const glue = num('glueTab');
+    if(L<=0 || W<=0 || H<=0) throw new Error('가로/세로/높이는 0보다 커야 합니다.');
+
+    const Lp = L + t, Wp = W + t, Hp = H + t;
+    const flap = Wp / 2;
+    const blankWidth = 2*(Lp + Wp) + glue;
+    const blankHeight = Hp + 2*flap;
+    const outer = { L: L+2*t, W: W+2*t, H: H+2*t };
+
+    return {
+      type:'rsc', outer, blankWidth, blankHeight, area: blankWidth*blankHeight,
+      panels:{ Lp, Wp, Hp, flap, glue },
+      results:[
+        {label:'외경 (가로×세로×높이)', value:`${fmt(outer.L)} × ${fmt(outer.W)} × ${fmt(outer.H)}`},
+        {label:'전개도 가로', value:fmt(blankWidth)},
+        {label:'전개도 세로', value:fmt(blankHeight)},
+        {label:'필요 원단 면적', value: areaFmt(blankWidth*blankHeight)},
+      ],
+      formula:
+`전개도 가로 = 2 × (L' + W') + 접착여유
+           = 2 × (${fmt(Lp)} + ${fmt(Wp)}) + ${fmt(glue)}
+           = ${fmt(blankWidth)}
+
+전개도 세로 = H' + W'  (상/하 플랩 깊이 = W'/2씩)
+           = ${fmt(Hp)} + ${fmt(Wp)}
+           = ${fmt(blankHeight)}
+
+* L' = L + t, W' = W + t, H' = H + t (두께 보정${el('useThicknessComp').checked?' 적용':' 미적용'})`
+    };
+  }
+
+  function calcTray(){
+    const L = num('dimL'), W = num('dimW'), H = num('dimH');
+    const t = el('useThicknessComp').checked ? num('thickness') : 0;
+    if(L<=0 || W<=0 || H<=0) throw new Error('가로/세로/높이는 0보다 커야 합니다.');
+
+    const Lp = L + t, Wp = W + t, Hp = H + t;
+    const tab = Hp * 0.6;
+    const blankWidth = Lp + 2*Hp + 2*tab;
+    const blankHeight = Wp + 2*Hp + 2*tab;
+    const outer = { L: L+2*t, W: W+2*t, H: H+t };
+
+    return {
+      type:'tray', outer, blankWidth, blankHeight, area: blankWidth*blankHeight,
+      panels:{ Lp, Wp, Hp, tab },
+      results:[
+        {label:'외경 (가로×세로×높이)', value:`${fmt(outer.L)} × ${fmt(outer.W)} × ${fmt(outer.H)}`},
+        {label:'전개도 가로', value:fmt(blankWidth)},
+        {label:'전개도 세로', value:fmt(blankHeight)},
+        {label:'필요 원단 면적', value: areaFmt(blankWidth*blankHeight)},
+      ],
+      formula:
+`전개도 가로 = L' + 2×H' + 2×모서리탭
+           = ${fmt(Lp)} + 2×${fmt(Hp)} + 2×${fmt(tab)}
+           = ${fmt(blankWidth)}
+
+전개도 세로 = W' + 2×H' + 2×모서리탭
+           = ${fmt(Wp)} + 2×${fmt(Hp)} + 2×${fmt(tab)}
+           = ${fmt(blankHeight)}
+
+* 모서리탭(코너 글루탭) = H' × 0.6 (기본값, 접착 방식에 따라 조정 가능)
+* L' = L + t, W' = W + t, H' = H + t`
+    };
+  }
+
+  function calcLidBase(){
+    const L = num('dimL'), W = num('dimW'), H = num('dimH'), Hlid = num('dimHLid');
+    const t = el('useThicknessComp').checked ? num('thickness') : 0;
+    const clr = num('clearance');
+    if(L<=0 || W<=0 || H<=0 || Hlid<=0) throw new Error('모든 치수는 0보다 커야 합니다.');
+
+    // base
+    const Lp = L + t, Wp = W + t, Hp = H + t;
+    const tabB = Hp * 0.6;
+    const baseW = Lp + 2*Hp + 2*tabB;
+    const baseH = Wp + 2*Hp + 2*tabB;
+
+    // lid (wraps around base with clearance on each side)
+    const LlidIn = L + 2*t + 2*clr;
+    const WlidIn = W + 2*t + 2*clr;
+    const LlidP = LlidIn + t, WlidP = WlidIn + t, HlidP = Hlid + t;
+    const tabL = HlidP * 0.6;
+    const lidW = LlidP + 2*HlidP + 2*tabL;
+    const lidH = WlidP + 2*HlidP + 2*tabL;
+
+    const outer = { L: LlidIn+2*t, W: WlidIn+2*t, H: (H+t)+(Hlid+t) };
+
+    return {
+      type:'lidbase', outer,
+      blankWidth: Math.max(baseW, lidW), blankHeight: baseH + lidH,
+      area: baseW*baseH + lidW*lidH,
+      panels:{ base:{w:baseW,h:baseH}, lid:{w:lidW,h:lidH} },
+      results:[
+        {label:'전체 외경 (닫았을 때, 대략)', value:`${fmt(outer.L)} × ${fmt(outer.W)} × ${fmt(outer.H)}`},
+        {label:'몸체 전개도', value:`${fmt(baseW)} × ${fmt(baseH)}`},
+        {label:'뚜껑 전개도', value:`${fmt(lidW)} × ${fmt(lidH)}`},
+        {label:'필요 원단 면적 (합계)', value: areaFmt(baseW*baseH + lidW*lidH)},
+      ],
+      formula:
+`[몸체]
+전개도 가로 = L' + 2×H' + 2×모서리탭 = ${fmt(baseW)}
+전개도 세로 = W' + 2×H' + 2×모서리탭 = ${fmt(baseH)}
+
+[뚜껑] (몸체보다 안쪽치수가 각 방향으로 ${fmt(clr)} 씩 더 큼)
+전개도 가로 = ${fmt(lidW)}
+전개도 세로 = ${fmt(lidH)}
+
+* 두께 보정${el('useThicknessComp').checked?' 적용':' 미적용'}, 모서리탭 = 벽 높이 × 0.6 (기본값)`
+    };
+  }
+
+  function areaFmt(mm2AsUnit2){
+    // area is in current-unit^2; convert to a friendly unit too
+    const d = currentUnit === 'inch' ? 3 : 1;
+    const base = round(mm2AsUnit2, d).toLocaleString(undefined,{maximumFractionDigits:d});
+    return `${base} ${currentUnit}²`;
+  }
+
+  function drawRSCDiagram(data){
+    const {Lp, Wp, Hp, flap, glue} = data.panels;
+    const scale = 380 / data.blankWidth;
+    const pad = 20;
+    const W = data.blankWidth*scale + pad*2;
+    const H = data.blankHeight*scale + pad*2;
+    const x0 = pad, y0 = pad + flap*scale;
+
+    const panels = [
+      {w:Wp, label:'W'}, {w:Lp, label:'L'}, {w:Wp, label:'W'}, {w:Lp, label:'L'}
+    ];
+    let x = x0;
+    let rects = '';
+    panels.forEach(p => {
+      const pw = p.w*scale, ph = Hp*scale;
+      rects += `<rect x="${x}" y="${y0}" width="${pw}" height="${ph}" fill="none" stroke="var(--mono,#374151)" stroke-width="1.2"/>`;
+      // top & bottom flap
+      const fh = flap*scale;
+      rects += `<rect x="${x}" y="${y0-fh}" width="${pw}" height="${fh}" fill="var(--accent-soft,#eaf0fe)" stroke="var(--mono,#374151)" stroke-width="1" stroke-dasharray="3,2"/>`;
+      rects += `<rect x="${x}" y="${y0+ph}" width="${pw}" height="${fh}" fill="var(--accent-soft,#eaf0fe)" stroke="var(--mono,#374151)" stroke-width="1" stroke-dasharray="3,2"/>`;
+      rects += `<text x="${x+pw/2}" y="${y0+ph/2}" font-size="11" text-anchor="middle" fill="var(--mono,#374151)">${p.label}</text>`;
+      x += pw;
+    });
+    // glue tab
+    const gw = glue*scale, gh = Hp*scale;
+    rects += `<rect x="${x}" y="${y0}" width="${gw}" height="${gh}" fill="none" stroke="var(--mono,#374151)" stroke-width="1" stroke-dasharray="2,2"/>`;
+    rects += `<text x="${x+gw/2}" y="${y0+gh/2}" font-size="9" text-anchor="middle" fill="var(--mono,#374151)">접착</text>`;
+
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${rects}</svg>`;
+  }
+
+  function drawCrossDiagram(w, h, wallLabel){
+    const scale = 380 / w;
+    const pad = 16;
+    const W = w*scale + pad*2, H = h*scale + pad*2;
+    // approximate cross: center rect inset by wallish ratio just for illustration
+    const cw = w*0.45*scale, ch = h*0.45*scale;
+    const cx = pad + (w*scale - cw)/2, cy = pad + (h*scale - ch)/2;
+    let s = `<rect x="${pad}" y="${pad}" width="${w*scale}" height="${h*scale}" fill="none" stroke="var(--border,#e2e4e9)" stroke-width="1" stroke-dasharray="4,3"/>`;
+    s += `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" fill="var(--accent-soft,#eaf0fe)" stroke="var(--mono,#374151)" stroke-width="1.2"/>`;
+    s += `<text x="${cx+cw/2}" y="${cy+ch/2}" font-size="11" text-anchor="middle" fill="var(--mono,#374151)">바닥</text>`;
+    // four side flaps
+    const flapT = (cy-pad), flapB=(pad+h*scale-(cy+ch)), flapL=(cx-pad), flapR=(pad+w*scale-(cx+cw));
+    s += `<rect x="${cx}" y="${pad}" width="${cw}" height="${flapT}" fill="none" stroke="var(--mono,#374151)" stroke-width="1" stroke-dasharray="3,2"/>`;
+    s += `<rect x="${cx}" y="${cy+ch}" width="${cw}" height="${flapB}" fill="none" stroke="var(--mono,#374151)" stroke-width="1" stroke-dasharray="3,2"/>`;
+    s += `<rect x="${pad}" y="${cy}" width="${flapL}" height="${ch}" fill="none" stroke="var(--mono,#374151)" stroke-width="1" stroke-dasharray="3,2"/>`;
+    s += `<rect x="${cx+cw}" y="${cy}" width="${flapR}" height="${ch}" fill="none" stroke="var(--mono,#374151)" stroke-width="1" stroke-dasharray="3,2"/>`;
+    s += `<text x="${W/2}" y="${H-4}" font-size="10" text-anchor="middle" fill="var(--muted,#6b7280)">${wallLabel}</text>`;
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${s}</svg>`;
+  }
+
+  function yieldInfo(blankW, blankH){
+    const sw = num('sheetW'), sh = num('sheetH');
+    if(!sw || !sh) return '';
+    const normal = Math.floor(sw/blankW) * Math.floor(sh/blankH);
+    const rotated = Math.floor(sw/blankH) * Math.floor(sh/blankW);
+    const best = Math.max(normal, rotated);
+    const usedArea = best * blankW * blankH;
+    const util = (usedArea / (sw*sh) * 100);
+    return `<p class="yield-note">원단 ${fmt(sw)} × ${fmt(sh)} 기준: 시트당 <strong>${best}개</strong> 재단 가능 (원단 활용률 약 ${round(util,1)}%)</p>`;
+  }
+
+  function render(){
+    showError(null);
+    const type = el('boxType').value;
+    let data;
+    try{
+      if(type === 'rsc') data = calcRSC();
+      else if(type === 'tray') data = calcTray();
+      else data = calcLidBase();
+    } catch(e){
+      showError(e.message);
+      el('resultGrid').innerHTML = '';
+      el('diagramContainer').innerHTML = '';
+      el('formulaBox').textContent = '';
+      return;
+    }
+
+    el('resultGrid').innerHTML = data.results.map(r =>
+      `<div class="stat"><div class="label">${r.label}</div><div class="value">${r.value}</div></div>`
+    ).join('');
+
+    let diagramHTML = '', caption = '';
+    if(type === 'rsc'){
+      diagramHTML = drawRSCDiagram(data);
+      caption = '점선 영역은 상/하단 플랩(덮개)입니다. 실선 사각형이 몸체 4면입니다.';
+    } else if(type === 'tray'){
+      diagramHTML = drawCrossDiagram(data.blankWidth, data.blankHeight, '십자형 전개도 (개략도)');
+      caption = '가운데가 바닥면, 사방으로 접히는 벽면입니다. 모서리 글루탭은 표시되지 않았습니다.';
+    } else {
+      diagramHTML = drawCrossDiagram(data.panels.base.w, data.panels.base.h, '몸체 전개도 (개략도)')
+        + drawCrossDiagram(data.panels.lid.w, data.panels.lid.h, '뚜껑 전개도 (개략도)');
+      caption = '몸체와 뚜껑을 각각 별도로 재단합니다.';
+    }
+    el('diagramContainer').innerHTML = diagramHTML;
+    el('diagramCaption').innerHTML = caption + yieldInfo(data.blankWidth, type==='lidbase' ? data.panels.base.h : data.blankHeight);
+
+    el('formulaBox').innerHTML = `<strong>계산식</strong><br><pre style="white-space:pre-wrap;margin:8px 0 0;font-family:inherit;">${data.formula}</pre>`;
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
