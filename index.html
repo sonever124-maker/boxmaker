@@ -193,7 +193,7 @@
   <div class="depth-row">
     <div class="input-wrap depth-wrap">
       <label>두께 (D)</label>
-      <input type="number" id="depth" placeholder="0" min="0" oninput="calculate()" required>
+      <input type="number" id="depth" placeholder="0" min="0" oninput="calculate()" required required>
       <div class="unit">mm</div>
     </div>
     <div class="depth-note">캔버스 두께는 18mm 기준이며<br>이보다 두꺼울 경우 제작비가 추가됩니다.</div>
@@ -216,12 +216,12 @@
     </div>
     <div class="input-wrap">
       <label>가로 (W)</label>
-      <input type="number" id="width" placeholder="0" min="0" oninput="onDimInput(this)" required>
+      <input type="number" id="width" placeholder="0" min="0" oninput="onDimInput(this)" required required>
       <div class="unit">mm</div>
     </div>
     <div class="input-wrap">
       <label>세로 (H)</label>
-      <input type="number" id="height" placeholder="0" min="0" oninput="onDimInput(this)" required>
+      <input type="number" id="height" placeholder="0" min="0" oninput="onDimInput(this)" required required>
       <div class="unit">mm</div>
     </div>
   </div>
@@ -244,15 +244,15 @@
     <div class="order-fields">
       <div class="order-row">
         <label>주문자</label>
-        <input type="text" id="order-name" class="wide" placeholder="이름을 입력하세요" required>
+        <input type="text" id="order-name" class="wide" placeholder="이름을 입력하세요" required required>
       </div>
       <div class="order-row">
         <label>전화번호</label>
-        <input type="tel" id="order-phone" class="wide" placeholder="010-0000-0000" required oninput="formatPhone(this)">
+        <input type="tel" id="order-phone" class="wide" placeholder="010-0000-0000" required oninput="formatPhone(this)" required oninput="formatPhone(this)">
       </div>
       <div class="order-row">
         <label>수량</label>
-        <input type="number" id="order-qty" class="narrow" placeholder="1" min="1" value="1" required>
+        <input type="number" id="order-qty" class="narrow" placeholder="1" min="1" value="1" required required>
       </div>
     </div>
     <button class="order-btn" onclick="submitOrder()">주문합니다</button>
@@ -581,7 +581,6 @@ async function submitOrder() {
     document.getElementById('order-name').value = '';
     document.getElementById('order-phone').value = '';
     document.getElementById('order-qty').value = '1';
-    resetHo();
   } catch(err) {
     msgEl.className = 'err';
     msgEl.textContent = '⚠ 주문 전송에 실패했습니다. 다시 시도해주세요.';
@@ -590,6 +589,12 @@ async function submitOrder() {
 }
 
 loadSheet();
+
+function formatPhone(input) {
+  // 숫자와 - 만 허용
+  let val = input.value.replace(/[^0-9\-]/g, '');
+  input.value = val;
+}
 </script>
 </body>
 </html>
