@@ -193,10 +193,10 @@
   <div class="depth-row">
     <div class="input-wrap depth-wrap">
       <label>두께 (D)</label>
-      <input type="number" id="depth" placeholder="0" min="0" oninput="calculate()" required required>
+      <input type="number" id="depth" placeholder="0" min="0" value="18" oninput="calculate()" required required>
       <div class="unit">mm</div>
     </div>
-    <div class="depth-note">캔버스 두께는 18mm 기준이며<br>이보다 두꺼울 경우 제작비가 추가됩니다.</div>
+    <div class="depth-note">캔버스 두께는 18mm 기준이며, 이보다 두꺼울 경우 제작비가 추가됩니다.</div>
   </div>
 
   <div class="input-group">
@@ -249,6 +249,10 @@
       <div class="order-row">
         <label>전화번호</label>
         <input type="tel" id="order-phone" class="wide" placeholder="010-0000-0000" required oninput="formatPhone(this)" required oninput="formatPhone(this)">
+      </div>
+      <div class="order-row">
+        <label>택배주소</label>
+        <input type="text" id="order-address" class="wide" placeholder="배송받으실 주소를 입력하세요" required required>
       </div>
       <div class="order-row">
         <label>수량</label>
@@ -532,10 +536,11 @@ function dimLine(x1,y1,x2,y2,label,col){
 }
 
 async function submitOrder() {
-  const name  = document.getElementById('order-name').value.trim();
-  const phone = document.getElementById('order-phone').value.trim();
-  const qty   = parseInt(document.getElementById('order-qty').value);
-  const msgEl = document.getElementById('order-msg');
+  const name    = document.getElementById('order-name').value.trim();
+  const phone   = document.getElementById('order-phone').value.trim();
+  const address = document.getElementById('order-address').value.trim();
+  const qty     = parseInt(document.getElementById('order-qty').value);
+  const msgEl   = document.getElementById('order-msg');
 
   const w = parseFloat(document.getElementById('width').value);
   const h = parseFloat(document.getElementById('height').value);
@@ -547,6 +552,7 @@ async function submitOrder() {
   if (!name)               { msgEl.textContent='주문자 이름을 입력해주세요.'; msgEl.className='err'; return; }
   if (!phone)              { msgEl.textContent='전화번호를 입력해주세요.'; msgEl.className='err'; return; }
   if (!/^[0-9\-]+$/.test(phone)) { msgEl.textContent='전화번호는 숫자와 "-"만 입력 가능합니다.'; msgEl.className='err'; return; }
+  if (!address)            { msgEl.textContent='택배주소를 입력해주세요.'; msgEl.className='err'; return; }
   if (!qty||qty<1)         { msgEl.textContent='수량을 입력해주세요.'; msgEl.className='err'; return; }
 
   const area = document.getElementById('product-area');
@@ -561,7 +567,7 @@ async function submitOrder() {
   try {
     // Apps Script CORS 우회: URLSearchParams + no-cors
     const params = new URLSearchParams({
-      name, phone, qty,
+      name, phone, address, qty,
       productName,
       width:  isNaN(w) ? '' : w,
       height: isNaN(h) ? '' : h,
@@ -580,6 +586,7 @@ async function submitOrder() {
     msgEl.textContent = `✓ 주문 완료! ${name}님 (${phone}) · ${productName} · ${qty}개`;
     document.getElementById('order-name').value = '';
     document.getElementById('order-phone').value = '';
+    document.getElementById('order-address').value = '';
     document.getElementById('order-qty').value = '1';
   } catch(err) {
     msgEl.className = 'err';
