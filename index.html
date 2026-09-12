@@ -97,6 +97,10 @@
     padding: 14px 18px;
   }
 
+  .photo-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .photo-pair .photo-card img { aspect-ratio: 1/1; }
+  .photo-pair .photo-card .cap { font-size: 14.5px; text-align: center; padding: 10px 8px; }
+
   /* ── 01~04 프로세스 ── */
   .process-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 36px;
@@ -281,25 +285,37 @@
     <div class="type-card">
       <h3>플로팅 액자</h3>
       <p class="desc">작품이 프레임에서 떠 보이도록 만드는 방식.</p>
-      <div class="tag-row"><span>비탈형</span><span>직각 계단형</span></div>
+      <div class="photo-pair">
+        <div class="photo-card"><img src="images/type-floating-1.jpg" alt="비탈형"><div class="cap">비탈형</div></div>
+        <div class="photo-card"><img src="images/type-floating-2.jpg" alt="직각 계단형"><div class="cap">직각 계단형</div></div>
+      </div>
     </div>
 
     <div class="type-card">
       <h3>받침형 액자</h3>
       <p class="desc">캔버스 전체를 떠받치는 원목 액자</p>
-      <div class="tag-row"><span>평평한 받침</span><span>쟁반형 받침</span></div>
+      <div class="photo-pair">
+        <div class="photo-card"><img src="images/type-stand-1.jpg" alt="평평한 받침"><div class="cap">평평한 받침</div></div>
+        <div class="photo-card"><img src="images/type-stand-2.jpg" alt="쟁반형 받침"><div class="cap">쟁반형 받침</div></div>
+      </div>
     </div>
 
     <div class="type-card">
       <h3>매트보드형 액자</h3>
       <p class="desc">뒷판 마감을 골라 작품의 여백을 만듭니다.</p>
+      <div class="photo-card" style="margin-bottom:16px;">
+        <img src="images/type-matboard.jpg" alt="매트보드형 액자">
+      </div>
       <div class="tag-row"><span>원목 뒷판</span><span>페인팅 뒷판</span><span>페브릭 뒷판</span><span>백색 광목판</span></div>
     </div>
 
     <div class="type-card">
       <h3>보호유리 액자</h3>
       <p class="desc">사진·수채화·수묵화 등 보호가 필요한 작품</p>
-      <div class="tag-row"><span>매트사진형</span><span>매트보드형</span></div>
+      <div class="photo-pair">
+        <div class="photo-card"><img src="images/type-glass-1.jpg" alt="매트사진형"><div class="cap">매트사진형 — 사진, 수채화, 수묵화</div></div>
+        <div class="photo-card"><img src="images/type-glass-2.jpg" alt="매트보드형"><div class="cap">매트보드형 — 매트보드에 올린 캔버스</div></div>
+      </div>
     </div>
   </div>
 </section>
@@ -319,6 +335,15 @@
       <div class="tag">보호유리</div>
       <h3>투명유리 · 아크릴 · 폴리카보네이트</h3>
       <p>작품의 크기와 성격에 따라 보호유리를 선택합니다.</p>
+    </div>
+
+    <div class="photo-card" style="margin-bottom:16px;">
+      <img src="images/material-joint.jpg" alt="홈을 파서 끼워 맞춤">
+      <div class="cap">홈을 파서 끼워 맞춤 — 가볍고 단단합니다.</div>
+    </div>
+    <div class="photo-card">
+      <img src="images/material-dims.jpg" alt="주문 시 필요한 치수">
+      <div class="cap">주문 시 필요한 치수 — 가로 · 세로 · 두께</div>
     </div>
 
     <div class="dims-box">
