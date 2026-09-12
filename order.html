@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>디멤버 액자 주문</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #f5f4f0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Noto Sans KR', sans-serif;
+    padding: 24px;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 40px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.08);
+  }
+
+  .home-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12.5px; font-weight: 600; color: #888;
+    text-decoration: none; margin-bottom: 16px;
+    transition: color 0.15s;
+  }
+  .home-link:hover { color: #4f46e5; }
+  .home-link svg { width: 14px; height: 14px; }
+
+  h1 { font-size: 20px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #999; margin-bottom: 32px; }
+
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #aaa; margin-bottom: 12px;
+  }
+
+  /* ── 두께 입력 ── */
+  .depth-row {
+    display: flex; align-items: center; gap: 18px; margin-bottom: 24px;
+  }
+  .depth-wrap { width: 120px; flex-shrink: 0; }
+  .depth-note {
+    font-size: 12px; color: #777; line-height: 1.6;
+  }
+
+  /* ── 캔버스 치수 입력 ── */
+  .input-group {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px; margin-bottom: 8px;
+  }
+  .input-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .input-wrap label { font-size: 12px; font-weight: 500; color: #555; }
+  .input-wrap input {
+    border: 1.5px solid #e0e0e0; border-radius: 10px;
+    padding: 10px 12px; font-size: 15px;
+    font-family: 'Space Mono', monospace; font-weight: 700;
+    color: #1a1a1a; background: #fafafa; text-align: center;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s; width: 100%;
+  }
+  .input-wrap input:focus {
+    border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); background: #fff;
+  }
+  .unit { font-size: 11px; color: #bbb; text-align: center; }
+
+  /* ── 호별 선택 ── */
+  .ho-inputs { display: flex; gap: 6px; }
+  .ho-inputs input[type="number"] {
+    border: 1.5px solid #e0e0e0; border-radius: 10px;
+    padding: 10px 6px; font-size: 15px;
+    font-family: 'Space Mono', monospace; font-weight: 700;
+    color: #1a1a1a; background: #fafafa; text-align: center;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s; width: 55%;
+  }
+  .ho-inputs select {
+    border: 1.5px solid #e0e0e0; border-radius: 10px;
+    padding: 10px 2px; font-size: 14px;
+    font-family: 'Space Mono', monospace; font-weight: 700;
+    color: #1a1a1a; background: #fafafa; text-align: center;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s; width: 45%;
+  }
+  .ho-inputs input:focus, .ho-inputs select:focus {
+    border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); background: #fff;
+  }
+  .ho-hint {
+    font-size: 10.5px; color: #bbb; text-align: center; min-height: 14px; margin-top: 2px;
+  }
+  .ho-hint.err { color: #ef4444; }
+  .ho-hint.ok { color: #10b981; }
+
+  .input-group-spacer { margin-bottom: 28px; }
+
+  /* ── 제품 카드 ── */
+  .sheet-status {
+    font-size: 11px; color: #bbb; text-align: right;
+    margin-bottom: 8px; min-height: 16px;
+  }
+  .sheet-status.ok { color: #10b981; }
+  .sheet-status.err { color: #ef4444; }
+
+  .product-card {
+    background: #f8f7ff; border: 1.5px solid #e0deff;
+    border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  }
+  .product-card.not-found { background: #fff8f0; border-color: #ffe0cc; }
+  .product-name { font-size: 14px; font-weight: 700; color: #3730a3; }
+  .product-card.not-found .product-name { color: #c05c00; }
+  .product-price {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px; font-weight: 700; color: #4f46e5; white-space: nowrap;
+  }
+  .product-card.not-found .product-price { color: #c05c00; font-size: 13px; font-family: 'Noto Sans KR', sans-serif; }
+
+  /* ── 액자 도면 ── */
+  .result-box {
+    background: #fff; border-radius: 14px;
+    padding: 20px 24px 24px; text-align: center;
+    border: 1.5px solid #e0e0e0; margin-bottom: 24px;
+  }
+  .result-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #aaa; margin-bottom: 12px;
+  }
+  .placeholder { color: #aaa; font-size: 13px; font-style: italic; padding: 32px 0; }
+  #diagram-wrap { width: 100%; display: flex; justify-content: center; align-items: center; }
+  #diagram-wrap svg { overflow: visible; }
+
+  /* ── 주문 정보 ── */
+  .order-section {
+    padding-top: 24px;
+    border-top: 1px solid #ebebeb;
+  }
+
+  .order-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .order-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .order-row label {
+    width: 60px;
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+  }
+
+  .order-row input {
+    border: 1.5px solid #e0e0e0; border-radius: 10px;
+    padding: 9px 12px; font-size: 14px;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: #1a1a1a; background: #fafafa;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .order-row input.wide { width: 220px; }
+  .order-row input.narrow { width: 90px; }
+  .order-row input:focus {
+    border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); background: #fff;
+  }
+
+  .order-btn {
+    width: 100%; padding: 14px;
+    background: #4f46e5; color: #fff;
+    font-size: 16px; font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    border: none; border-radius: 12px; cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    letter-spacing: 0.02em;
+  }
+  .order-btn:hover { background: #4338ca; }
+  .order-btn:active { transform: scale(0.98); }
+
+  #order-msg {
+    margin-top: 12px; font-size: 13px;
+    text-align: center; min-height: 20px;
+    color: #10b981; font-weight: 500;
+  }
+  #order-msg.err { color: #ef4444; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <a class="home-link" href="index.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    처음으로
+  </a>
+
+  <!-- 1. 제목 -->
+  <h1>디멤버 액자 주문</h1>
+  <p class="subtitle">캔버스 치수를 입력하면 액자 사이즈를 계산합니다.</p>
+
+  <!-- 2. 캔버스 원본 치수 -->
+  <div class="section-label">캔버스 원본 치수 (mm)</div>
+
+  <div class="depth-row">
+    <div class="input-wrap depth-wrap">
+      <label>두께 (D)</label>
+      <input type="number" id="depth" placeholder="0" min="0" value="18" oninput="calculate()" required required>
+      <div class="unit">mm</div>
+    </div>
+    <div class="depth-note">캔버스 두께는 18mm 기준이며, 이보다 두꺼울 경우 제작비가 추가됩니다.</div>
+  </div>
+
+  <div class="input-group">
+    <div class="input-wrap">
+      <label>호별</label>
+      <div class="ho-inputs">
+        <input type="number" id="ho-number" placeholder="0" min="0" oninput="onHoChange()">
+        <select id="ho-type" onchange="onHoChange()">
+          <option value="">-</option>
+          <option value="F">F</option>
+          <option value="P">P</option>
+          <option value="M">M</option>
+          <option value="S">S</option>
+        </select>
+      </div>
+      <div class="unit">F,P,M,S 선택</div>
+    </div>
+    <div class="input-wrap">
+      <label>가로 (W)</label>
+      <input type="number" id="width" placeholder="0" min="0" oninput="onDimInput(this)" required required>
+      <div class="unit">mm</div>
+    </div>
+    <div class="input-wrap">
+      <label>세로 (H)</label>
+      <input type="number" id="height" placeholder="0" min="0" oninput="onDimInput(this)" required required>
+      <div class="unit">mm</div>
+    </div>
+  </div>
+  <div class="ho-hint" id="ho-hint"></div>
+  <div class="input-group-spacer"></div>
+
+  <!-- 3. 제품명 & 금액 -->
+  <div class="sheet-status" id="sheet-status"></div>
+  <div id="product-area"></div>
+
+  <!-- 4. 액자 사이즈 도면 -->
+  <div class="result-box">
+    <div class="result-label">액자 사이즈</div>
+    <div id="result">
+      <div class="placeholder">치수를 입력하면 도면이 표시됩니다</div>
+    </div>
+  </div>
+
+  <!-- 5. 주문 정보 -->
+  <div class="order-section">
+    <div class="section-label" style="margin-bottom:16px;">주문 정보</div>
+    <div class="order-fields">
+      <div class="order-row">
+        <label>주문자</label>
+        <input type="text" id="order-name" class="wide" placeholder="이름을 입력하세요" required required>
+      </div>
+      <div class="order-row">
+        <label>전화번호</label>
+        <input type="tel" id="order-phone" class="wide" placeholder="010-0000-0000" required oninput="formatPhone(this)" required oninput="formatPhone(this)">
+      </div>
+      <div class="order-row">
+        <label>택배주소</label>
+        <input type="text" id="order-address" class="wide" placeholder="배송받으실 주소를 입력하세요" required required>
+      </div>
+      <div class="order-row">
+        <label>수량</label>
+        <input type="number" id="order-qty" class="narrow" placeholder="1" min="1" value="1" required required>
+      </div>
+    </div>
+    <button class="order-btn" onclick="submitOrder()">주문합니다</button>
+    <div id="order-msg"></div>
+  </div>
+
+</div>
+<script>
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyWamgnb5TpwZ8rNezWOChaqfASNeUcNLjfsAzZUJArNdeBYAESzks9184kMao9KpkL/exec';
+
+let sheetData = [], sheetLoaded = false;
+
+// 호별 선택으로 채워진 가로/세로 값(변경 감지용)
+let hoLocked = false;
+let hoAppliedW = null, hoAppliedH = null;
+
+function formatPhone(input) {
+  // 숫자와 - 이외 문자 즉시 제거
+  input.value = input.value.replace(/[^0-9-]/g, '');
+}
+
+async function loadSheet() {
+  const el = document.getElementById('sheet-status');
+  el.textContent = '시트 데이터 불러오는 중…';
+  try {
+    const res = await fetch(SHEET_URL);
+    if (!res.ok) throw new Error();
+    const json = await res.json();
+    sheetData = json.map(row => {
+      const obj = {};
+      Object.keys(row).forEach(k => { obj[k.trim().toLowerCase()] = String(row[k]).trim(); });
+      return obj;
+    }).filter(r => r.width || r.name);
+    sheetLoaded = true;
+    el.textContent = `✓ 시트 연동됨 (${sheetData.length}개 제품)`;
+    el.className = 'sheet-status ok';
+    calculate();
+  } catch {
+    el.textContent = '⚠ 시트를 불러올 수 없습니다.';
+    el.className = 'sheet-status err';
+  }
+}
+
+function findProduct(w, h) {
+  const TOLERANCE = 5;
+
+  // 1) 가로·세로 ±5mm 이내 → 정확 매칭 (변형 없음)
+  const exact = sheetData.find(r =>
+    Math.abs(parseFloat(r.width) - w) <= TOLERANCE &&
+    Math.abs(parseFloat(r.height) - h) <= TOLERANCE
+  );
+  if (exact) return { ...exact, variant: false };
+
+  // 2) 대각선 기반 매칭
+  // 입력값의 대각선 길이 계산
+  const inputDiag = Math.sqrt(w * w + h * h);
+
+  // 시트의 각 행 대각선 계산 (diagonal 컬럼 우선, 없으면 width·height로 계산)
+  const withDiag = sheetData.map(r => {
+    const diag = parseFloat(r.diagonal) || Math.sqrt(parseFloat(r.width) ** 2 + parseFloat(r.height) ** 2);
+    return { ...r, _diag: diag };
+  });
+
+  // 입력 대각선보다 크거나 같은 항목 중 가장 작은 것 선택 (근접한 큰 값)
+  const larger = withDiag
+    .filter(r => r._diag >= inputDiag)
+    .sort((a, b) => a._diag - b._diag);
+
+  if (larger.length > 0) return { ...larger[0], variant: true };
+
+  // 모두 입력값보다 작으면 가장 큰 항목
+  const fallback = withDiag.sort((a, b) => b._diag - a._diag);
+  if (fallback.length > 0) return { ...fallback[0], variant: true };
+
+  return null;
+}
+
+// 텍스트에서 "호수 + F/P/M/S" 패턴을 찾는다.
+// "10P", "10 P", "10호 P", "10호P", "P10", "P-10" 등 순서·공백·"호" 유무에 관계없이 인식
+function parseHoFromText(text) {
+  if (!text) return null;
+  const s = String(text).toUpperCase();
+  let m = s.match(/(\d+)\s*호?\s*[-]?\s*([FPMS])(?![A-Z])/);
+  if (m) return { number: m[1], type: m[2] };
+  m = s.match(/([FPMS])\s*[-]?\s*(\d+)\s*호?/);
+  if (m) return { number: m[2], type: m[1] };
+  return null;
+}
+
+// 호수(숫자) + 타입(F/P/M/S)으로 시트에서 제품을 찾는다
+function findByHo(number, type) {
+  if (!number || !type) return null;
+  const targetNum = String(number).trim();
+  const targetType = String(type).trim().toUpperCase();
+  return sheetData.find(r => {
+    const candidates = [r.name, r.ho, r.size, r.호별, r.호수, r.규격];
+    return candidates.some(c => {
+      const parsed = parseHoFromText(c);
+      return parsed && parsed.number === targetNum && parsed.type === targetType;
+    });
+  }) || null;
+}
+
+// 호별 입력값 초기화 (가로/세로 값은 건드리지 않음)
+function resetHo() {
+  document.getElementById('ho-number').value = '';
+  document.getElementById('ho-type').value = '';
+  hoLocked = false;
+  hoAppliedW = null;
+  hoAppliedH = null;
+  setHoHint('');
+}
+
+function setHoHint(text, kind) {
+  const el = document.getElementById('ho-hint');
+  el.textContent = text || '';
+  el.className = 'ho-hint' + (kind ? ' ' + kind : '');
+}
+
+// 호별(숫자+F/P/M/S) 변경 시 시트를 검색해 가로/세로를 자동으로 채운다
+function onHoChange() {
+  const number = document.getElementById('ho-number').value.trim();
+  const type = document.getElementById('ho-type').value;
+
+  if (!number || !type) {
+    hoLocked = false;
+    hoAppliedW = null;
+    hoAppliedH = null;
+    setHoHint('');
+    return;
+  }
+
+  if (!sheetLoaded) {
+    setHoHint('시트 데이터 로딩 중입니다…');
+    return;
+  }
+
+  const match = findByHo(number, type);
+  if (!match) {
+    hoLocked = false;
+    hoAppliedW = null;
+    hoAppliedH = null;
+    setHoHint(`"${number}${type}" 규격을 시트에서 찾을 수 없습니다.`, 'err');
+    return;
+  }
+
+  const w = parseFloat(match.width);
+  const h = parseFloat(match.height);
+  if (isNaN(w) || isNaN(h)) {
+    setHoHint('시트에 가로/세로 값이 올바르지 않습니다.', 'err');
+    return;
+  }
+
+  hoAppliedW = w;
+  hoAppliedH = h;
+  hoLocked = true;
+  document.getElementById('width').value = w;
+  document.getElementById('height').value = h;
+  setHoHint(`✓ ${match.name || (number + type)} (${w} × ${h} mm) 적용됨`, 'ok');
+  calculate();
+}
+
+// 가로/세로를 사용자가 직접 수정하면, 호별 선택으로 채워진 값과 다를 경우 호별을 초기화한다
+function onDimInput() {
+  if (hoLocked) {
+    const w = parseFloat(document.getElementById('width').value);
+    const h = parseFloat(document.getElementById('height').value);
+    if (w !== hoAppliedW || h !== hoAppliedH) {
+      resetHo();
+    }
+  }
+  calculate();
+}
+
+function showProduct(w, h) {
+  const area = document.getElementById('product-area');
+  if (!sheetLoaded || w === null || h === null) { area.innerHTML = ''; return; }
+  const p = findProduct(w, h);
+  if (p) {
+    const price = parseInt(p.price, 10);
+    const priceStr = isNaN(price) ? p.price : price.toLocaleString('ko-KR') + '원';
+    const displayName = p.variant ? `${p.name} 변형` : p.name;
+    const nameBadge = p.variant
+      ? `<span style="background:#fff3cd;color:#856404;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:4px;">변형</span>`
+      : '';
+    area.innerHTML = `<div class="product-card">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <div class="product-name">📦 ${p.name}${nameBadge}</div>
+        <div style="font-family:'Space Mono',monospace; font-size:11px; color:#9ca3af; font-weight:600;">${p.width} × ${p.height} mm</div>
+      </div>
+      <div class="product-price">${priceStr}</div>
+    </div>`;
+  } else {
+    area.innerHTML = `<div class="product-card not-found"><div class="product-name">⚠ 일치하는 제품 없음</div><div class="product-price">시트를 확인해주세요</div></div>`;
+  }
+}
+
+function calculate() {
+  const w = parseFloat(document.getElementById('width').value);
+  const h = parseFloat(document.getElementById('height').value);
+  const d = parseFloat(document.getElementById('depth').value);
+  const resultEl = document.getElementById('result');
+
+  if (isNaN(w) && isNaN(h) && isNaN(d)) {
+    resultEl.innerHTML = '<div class="placeholder">치수를 입력하면 도면이 표시됩니다</div>';
+    document.getElementById('product-area').innerHTML = '';
+    return;
+  }
+
+  // 가로가 세로보다 작으면 자동으로 교환
+  let adjW = isNaN(w) ? null : w;
+  let adjH = isNaN(h) ? null : h;
+  if (adjW !== null && adjH !== null && adjW < adjH) {
+    [adjW, adjH] = [adjH, adjW];
+  }
+
+  const rw = adjW === null ? null : adjW + 30;
+  const rh = adjH === null ? null : adjH + 30;
+  const rd = isNaN(d) ? null : d + 17;
+
+  showProduct(adjW, adjH);
+  resultEl.innerHTML = `<div id="diagram-wrap">${drawDiagram(rw, rh, rd)}</div>`;
+}
+
+function fmt(v) {
+  if (v === null) return '—';
+  return Number.isInteger(v) ? v.toString() : v.toFixed(1);
+}
+
+function drawDiagram(rw, rh, rd) {
+  const svgW = 400, svgH = 300;
+  const rawW = rw||200, rawH = rh||150, rawD = rd||30;
+  const maxFW = 190, maxFH = 160;
+  const aspect = rawW / rawH;
+  let fW, fH;
+  if (aspect >= 1) { fW = Math.min(maxFW, maxFH*aspect); fH = fW/aspect; }
+  else             { fH = Math.min(maxFH, maxFW/aspect); fW = fH*aspect; }
+  fW = Math.max(fW,60); fH = Math.max(fH,60);
+
+  const dOff = Math.max(16, Math.min(48, (rawD/Math.max(rawW,rawH))*130));
+  const ox = dOff*0.85, oy = dOff*0.48;
+  const startX = 55+ox, startY = 45+oy;
+  const ftl=[startX,startY], ftr=[startX+fW,startY];
+  const fbr=[startX+fW,startY+fH], fbl=[startX,startY+fH];
+  const btl=[ftl[0]-ox,ftl[1]-oy], btr=[ftr[0]-ox,ftr[1]-oy], bbl=[fbl[0]-ox,fbl[1]-oy];
+  const p = pts => pts.map(pt=>pt.join(',')).join(' ');
+
+  const frameCol='#c9a96e', sideCol='#9a6e30', topCol='#e8c878';
+  const strokeCol='#6e4010', innerCol='#23234a', dimCol='#4f46e5';
+  const ft=13;
+
+  let svg = `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">
+  <defs><filter id="sh"><feDropShadow dx="2" dy="5" stdDeviation="5" flood-color="#000" flood-opacity="0.4"/></filter></defs>`;
+  svg += `<polygon points="${p([btl,btr,ftr,ftl])}" fill="${topCol}" stroke="${strokeCol}" stroke-width="1.2"/>`;
+  svg += `<polygon points="${p([btl,ftl,fbl,bbl])}" fill="${sideCol}" stroke="${strokeCol}" stroke-width="1.2"/>`;
+  svg += `<rect x="${ftl[0]}" y="${ftl[1]}" width="${fW}" height="${fH}" fill="${frameCol}" stroke="${strokeCol}" stroke-width="1.5" filter="url(#sh)"/>`;
+  svg += `<rect x="${ftl[0]+ft}" y="${ftl[1]+ft}" width="${fW-ft*2}" height="${fH-ft*2}" fill="${innerCol}" stroke="${strokeCol}" stroke-width="0.8"/>`;
+  [[ftl,1,1],[ftr,-1,1],[fbr,-1,-1],[fbl,1,-1]].forEach(([pt,sx,sy])=>{
+    svg += `<line x1="${pt[0]}" y1="${pt[1]}" x2="${pt[0]+sx*ft}" y2="${pt[1]+sy*ft}" stroke="${strokeCol}" stroke-width="0.8" opacity="0.5"/>`;
+  });
+  svg += `<line x1="${btl[0]}" y1="${btl[1]}" x2="${btr[0]}" y2="${btr[1]}" stroke="#f5e8b0" stroke-width="1.5" opacity="0.8"/>`;
+
+  const ext=8, gap=14;
+  if (rw!==null) {
+    const y=fbr[1]+gap+16;
+    svg += dimLine(fbl[0],y,fbr[0],y,`${fmt(rw)} mm`,dimCol);
+    svg += extLine(fbl[0],fbl[1]+ext,fbl[0],y+5,dimCol);
+    svg += extLine(fbr[0],fbr[1]+ext,fbr[0],y+5,dimCol);
+  }
+  if (rh!==null) {
+    const x=fbr[0]+gap+24;
+    svg += dimLine(x,ftr[1],x,fbr[1],`${fmt(rh)} mm`,dimCol);
+    svg += extLine(ftr[0]+ext,ftr[1],x+5,ftr[1],dimCol);
+    svg += extLine(fbr[0]+ext,fbr[1],x+5,fbr[1],dimCol);
+  }
+  if (rd!==null) {
+    const mx=(ftr[0]+btr[0])/2-4, my=(ftr[1]+btr[1])/2-10;
+    svg += `<line x1="${ftr[0]}" y1="${ftr[1]}" x2="${btr[0]}" y2="${btr[1]}" stroke="${dimCol}" stroke-width="1" stroke-dasharray="3,3"/>`;
+    svg += arrowhead(ftr[0],ftr[1],btr[0],btr[1],dimCol);
+    svg += arrowhead(btr[0],btr[1],ftr[0],ftr[1],dimCol);
+    const angle=Math.atan2(btr[1]-ftr[1],btr[0]-ftr[0])*180/Math.PI;
+    svg += `<text x="${mx}" y="${my}" fill="${dimCol}" font-family="Space Mono,monospace" font-size="10" font-weight="700" text-anchor="middle" transform="rotate(${angle},${mx},${my+5})">${fmt(rd)} mm</text>`;
+  }
+  svg += `</svg>`;
+  return svg;
+}
+
+function extLine(x1,y1,x2,y2,col){return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="0.8" opacity="0.5"/>`;}
+function arrowhead(x1,y1,x2,y2,col){
+  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy),ux=dx/len,uy=dy/len,px=-uy,py=ux,s=5;
+  return `<polygon points="${x1},${y1} ${x1+ux*s+px*s/2},${y1+uy*s+py*s/2} ${x1+ux*s-px*s/2},${y1+uy*s-py*s/2}" fill="${col}"/>`;
+}
+function dimLine(x1,y1,x2,y2,label,col){
+  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy),ux=dx/len,uy=dy/len,px=-uy,py=ux,s=5;
+  const ah1=`<polygon points="${x1},${y1} ${x1+ux*s+px*s/2},${y1+uy*s+py*s/2} ${x1+ux*s-px*s/2},${y1+uy*s-py*s/2}" fill="${col}"/>`;
+  const ah2=`<polygon points="${x2},${y2} ${x2-ux*s+px*s/2},${y2-uy*s+py*s/2} ${x2-ux*s-px*s/2},${y2-uy*s-py*s/2}" fill="${col}"/>`;
+  const mx=(x1+x2)/2,my=(y1+y2)/2,tOff=12;
+  const tx=mx+px*tOff,ty=my+py*tOff;
+  const angle=Math.atan2(dy,dx)*180/Math.PI;
+  const da=(angle>90||angle<-90)?angle+180:angle;
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="1"/>
+    ${ah1}${ah2}
+    <text x="${tx}" y="${ty}" fill="${col}" font-family="Space Mono,monospace" font-size="11" font-weight="700"
+      text-anchor="middle" dominant-baseline="middle" transform="rotate(${da},${tx},${ty})">${label}</text>`;
+}
+
+async function submitOrder() {
+  const name    = document.getElementById('order-name').value.trim();
+  const phone   = document.getElementById('order-phone').value.trim();
+  const address = document.getElementById('order-address').value.trim();
+  const qty     = parseInt(document.getElementById('order-qty').value);
+  const msgEl   = document.getElementById('order-msg');
+
+  const w = parseFloat(document.getElementById('width').value);
+  const h = parseFloat(document.getElementById('height').value);
+  const d = parseFloat(document.getElementById('depth').value);
+
+  if (isNaN(w) || w <= 0) { msgEl.textContent='가로 치수를 입력해주세요.'; msgEl.className='err'; return; }
+  if (isNaN(h) || h <= 0) { msgEl.textContent='세로 치수를 입력해주세요.'; msgEl.className='err'; return; }
+  if (isNaN(d) || d <= 0) { msgEl.textContent='두께 치수를 입력해주세요.'; msgEl.className='err'; return; }
+  if (!name)               { msgEl.textContent='주문자 이름을 입력해주세요.'; msgEl.className='err'; return; }
+  if (!phone)              { msgEl.textContent='전화번호를 입력해주세요.'; msgEl.className='err'; return; }
+  if (!/^[0-9\-]+$/.test(phone)) { msgEl.textContent='전화번호는 숫자와 "-"만 입력 가능합니다.'; msgEl.className='err'; return; }
+  if (!address)            { msgEl.textContent='택배주소를 입력해주세요.'; msgEl.className='err'; return; }
+  if (!qty||qty<1)         { msgEl.textContent='수량을 입력해주세요.'; msgEl.className='err'; return; }
+
+  const area = document.getElementById('product-area');
+  const nameEl = area.querySelector('.product-name');
+  const productName = nameEl
+    ? nameEl.textContent.replace('📦 ','').replace('변형','').trim() + (nameEl.querySelector('span') ? ' 변형' : '')
+    : '미지정';
+
+  msgEl.className = '';
+  msgEl.textContent = '주문 전송 중…';
+
+  try {
+    // Apps Script CORS 우회: URLSearchParams + no-cors
+    const params = new URLSearchParams({
+      name, phone, address, qty,
+      productName,
+      width:  isNaN(w) ? '' : w,
+      height: isNaN(h) ? '' : h,
+      depth:  isNaN(d) ? '' : d
+    });
+
+    await fetch(SHEET_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+
+    // no-cors는 응답을 읽을 수 없으므로 전송 성공으로 처리
+    msgEl.className = '';
+    msgEl.textContent = `✓ 주문 완료! ${name}님 (${phone}) · ${productName} · ${qty}개`;
+    document.getElementById('order-name').value = '';
+    document.getElementById('order-phone').value = '';
+    document.getElementById('order-address').value = '';
+    document.getElementById('order-qty').value = '1';
+  } catch(err) {
+    msgEl.className = 'err';
+    msgEl.textContent = '⚠ 주문 전송에 실패했습니다. 다시 시도해주세요.';
+    console.error(err);
+  }
+}
+
+loadSheet();
+
+function formatPhone(input) {
+  // 숫자와 - 만 허용
+  let val = input.value.replace(/[^0-9\-]/g, '');
+  input.value = val;
+}
+</script>
+</body>
+</html>
