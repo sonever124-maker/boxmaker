@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>래티스 설계</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --border:#e2e4e9; --text:#1c1e21;
+    --muted:#6b7280; --accent:#2563eb; --accent-soft:#eaf0fe;
+    --danger:#dc2626; --mono:#374151;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#15171c; --panel:#1d2027; --border:#2b2f3a; --text:#e8e9ec;
+      --muted:#9aa0ac; --accent:#5b8dfc; --accent-soft:#1e2a44;
+      --danger:#f87171; --mono:#c7cad1;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.5;
+  }
+  header{ padding:24px 28px 8px; }
+  header h1{ margin:0 0 4px; font-size:22px; }
+  header p{ margin:0; color:var(--muted); font-size:14px; }
+  nav.tabs{ display:flex; gap:8px; padding:0 28px; margin-top:14px; }
+  nav.tabs a{
+    display:inline-block; padding:8px 14px; border-radius:8px 8px 0 0;
+    font-size:13px; text-decoration:none; color:var(--muted);
+    border:1px solid var(--border); border-bottom:none; background:var(--bg);
+  }
+  nav.tabs a.active{ color:var(--text); background:var(--panel); font-weight:600; }
+  main{
+    display:grid; grid-template-columns: 380px 1fr; gap:20px;
+    padding:20px 28px 40px; align-items:start;
+  }
+  @media (max-width: 860px){ main{ grid-template-columns: 1fr; } }
+  .panel{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px;
+    padding:20px;
+  }
+  .panel h2{ font-size:15px; margin:0 0 14px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:13px; color:var(--muted); margin-bottom:5px; }
+  .field .hint{ font-size:11.5px; color:var(--muted); margin-top:4px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  input[type=number]{
+    width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); font-size:14px;
+  }
+  input[type=number]:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .unit-toggle{ display:flex; gap:6px; }
+  .unit-toggle button{
+    flex:1; padding:8px 0; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); font-size:13px; cursor:pointer;
+  }
+  .unit-toggle button.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .checkbox-row{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text); margin-top:8px;}
+  .checkbox-row input{ width:15px; height:15px; }
+
+  .result-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px; }
+  .stat{ background:var(--accent-soft); border-radius:10px; padding:12px 14px; }
+  .stat .label{ font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .stat .value{ font-size:18px; font-weight:600; }
+  .stat .sub{ font-size:11px; color:var(--muted); margin-top:2px; }
+
+  svg{ width:100%; height:auto; display:block; background:var(--bg); border-radius:10px; border:1px solid var(--border); }
+  .diagram-wrap{ margin-top:6px; }
+  .diagram-caption{ font-size:12px; color:var(--muted); margin-top:8px; }
+
+  .error{ color:var(--danger); font-size:13px; margin-top:6px; }
+  .section-title{ font-size:13px; color:var(--muted); margin:18px 0 8px; font-weight:600; }
+
+  table.cutlist{ width:100%; border-collapse:collapse; font-size:13px; }
+  table.cutlist th, table.cutlist td{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); }
+  table.cutlist th{ color:var(--muted); font-weight:600; font-size:12px; }
+  table.cutlist td.num{ text-align:right; font-variant-numeric:tabular-nums; }
+  details{ margin-top:10px; }
+  details summary{ cursor:pointer; font-size:13px; color:var(--accent); }
+  details .inner{ margin-top:10px; max-height:320px; overflow:auto; }
+  .note{ font-size:11.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>래티스 설계</h1>
+  <p>사각 틀(가로×세로)에 45° 사선 살을 일정 간격으로 배치할 때, 필요한 살의 개수와 각 조각의 절단 길이를 계산합니다.</p>
+  <nav class="tabs">
+    <a href="index.html">박스 치수 계산기</a>
+    <a href="lattice.html" class="active">래티스 설계</a>
+  </nav>
+</header>
+
+<main>
+  <section class="panel" id="input-panel">
+    <h2>1. 단위</h2>
+    <div class="field">
+      <div class="unit-toggle" id="unitToggle">
+        <button data-unit="mm" class="active">mm</button>
+        <button data-unit="cm">cm</button>
+        <button data-unit="inch">inch</button>
+      </div>
+    </div>
+
+    <h2 style="margin-top:20px;">2. 틀(패널) 크기</h2>
+    <div class="row2">
+      <div class="field">
+        <label>가로 (a)</label>
+        <input type="number" id="panelA" class="dim" value="804" min="0" step="0.1">
+      </div>
+      <div class="field">
+        <label>세로 (b)</label>
+        <input type="number" id="panelB" class="dim" value="1344" min="0" step="0.1">
+      </div>
+    </div>
+
+    <h2 style="margin-top:20px;">3. 살(사선) 규격</h2>
+    <div class="field">
+      <label>살 폭 (c, 살과 직각으로 잰 실제 폭)</label>
+      <input type="number" id="slatWidth" class="dim" value="30" min="0" step="0.1">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>모서리 여백 (첫 살까지, 변을 따라 잰 값)</label>
+        <input type="number" id="edgeOffset" class="dim" value="70" min="0" step="0.1">
+      </div>
+      <div class="field">
+        <label>배치 간격 (피치, 변을 따라 잰 값)</label>
+        <input type="number" id="pitch" class="dim" value="140" min="0" step="0.1">
+      </div>
+    </div>
+    <p class="note">사선은 45°로 고정되어 있습니다. 여백/간격은 위·좌측 변을 따라 잰 값이며(도면 치수와 동일 기준), 살 폭은 살에 직각으로 잰 실제 폭입니다.</p>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="autoFit">
+      <label for="autoFit" style="margin:0;">양끝 여백을 동일하게 맞춰 간격 자동 보정</label>
+    </div>
+
+    <p class="error" id="errorMsg" style="display:none;"></p>
+  </section>
+
+  <section class="panel" id="output-panel">
+    <h2>계산 결과</h2>
+    <div class="result-grid" id="resultGrid"></div>
+
+    <div class="diagram-wrap">
+      <div class="section-title">배치도 미리보기</div>
+      <div id="diagramContainer"></div>
+      <p class="diagram-caption" id="diagramCaption"></p>
+    </div>
+
+    <div class="section-title">재단 목록 (길이별 집계)</div>
+    <table class="cutlist" id="summaryTable"></table>
+
+    <details>
+      <summary>살 하나하나의 상세 목록 보기</summary>
+      <div class="inner">
+        <table class="cutlist" id="detailTable"></table>
+      </div>
+    </details>
+  </section>
+</main>
+
+<script>
+(function(){
+  const unitFactor = { mm:1, cm:10, inch:25.4 };
+  let currentUnit = 'mm';
+  const el = id => document.getElementById(id);
+  const dimIds = ['panelA','panelB','slatWidth','edgeOffset','pitch'];
+
+  el('unitToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-unit]');
+    if(!btn) return;
+    const newUnit = btn.dataset.unit;
+    if(newUnit === currentUnit) return;
+    const oldFactor = unitFactor[currentUnit];
+    const newFactor = unitFactor[newUnit];
+    dimIds.forEach(id => {
+      const input = el(id);
+      if(input.value === '') return;
+      const v = parseFloat(input.value);
+      if(isNaN(v)) return;
+      const mmVal = v * oldFactor;
+      const converted = mmVal / newFactor;
+      input.value = round(converted, newUnit === 'inch' ? 3 : 2);
+    });
+    currentUnit = newUnit;
+    [...el('unitToggle').children].forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  });
+
+  document.querySelectorAll('input').forEach(input => input.addEventListener('input', render));
+
+  function round(n, d){ const f = Math.pow(10, d); return Math.round(n * f) / f; }
+  function fmt(n){
+    const d = currentUnit === 'inch' ? 3 : 1;
+    return round(n, d).toLocaleString(undefined, {maximumFractionDigits:d}) + ' ' + currentUnit;
+  }
+  function fmtLen(n){
+    const d = currentUnit === 'inch' ? 3 : 1;
+    return round(n, d).toLocaleString(undefined, {maximumFractionDigits:d});
+  }
+  function num(id){ const v = parseFloat(el(id).value); return isNaN(v) ? 0 : v; }
+
+  function showError(msg){
+    const e = el('errorMsg');
+    if(!msg){ e.style.display='none'; e.textContent=''; return; }
+    e.style.display='block'; e.textContent = msg;
+  }
+
+  function calcLattice(){
+    const a = num('panelA'), b = num('panelB');
+    const w = num('slatWidth');
+    let M = num('edgeOffset');
+    let P = num('pitch');
+    if(a<=0 || b<=0) throw new Error('가로/세로는 0보다 커야 합니다.');
+    if(w<=0) throw new Error('살 폭은 0보다 커야 합니다.');
+    if(P<=0) throw new Error('배치 간격은 0보다 커야 합니다.');
+    if(M<0) throw new Error('모서리 여백은 0 이상이어야 합니다.');
+
+    const diag = a + b;
+    const c = w * Math.SQRT2; // 변 기준 좌표계에서의 살 폭
+    if(c >= P) throw new Error('살 폭이 배치 간격보다 크거나 같습니다. 살들이 겹칩니다.');
+
+    if(el('autoFit').checked){
+      const n = Math.max(1, Math.round((diag - 2*M) / P) + 1);
+      if(n > 1) P = (diag - 2*M - c) / (n - 1);
+    }
+
+    const slats = [];
+    let k1 = M, i = 0;
+    const EPS = 1e-9;
+    while(k1 < diag - EPS){
+      const k2 = k1 + c;
+      const kmid = (k1 + k2) / 2;
+      const length = Math.max(0, Math.min(a, kmid) - Math.max(0, kmid - b)) * Math.SQRT2;
+      if(length > 1e-6){
+        slats.push({ index: i+1, k1, k2, length, isCorner: k2 > diag + EPS });
+      }
+      i++;
+      k1 += P;
+    }
+    const lastK2 = slats.length ? slats[slats.length-1].k2 : M;
+    const leftover = Math.max(0, diag - lastK2);
+    const totalLength = slats.reduce((s,x) => s + x.length, 0);
+
+    return { a, b, w, M, P, c, diag, slats, leftover, totalLength };
+  }
+
+  // ---- polygon clipping (Sutherland-Hodgman) for drawing the diagonal band ----
+  function clipHalfPlane(poly, insideFn, intersectFn){
+    if(poly.length === 0) return poly;
+    const out = [];
+    for(let i=0;i<poly.length;i++){
+      const cur = poly[i], prev = poly[(i-1+poly.length)%poly.length];
+      const curIn = insideFn(cur), prevIn = insideFn(prev);
+      if(curIn){
+        if(!prevIn) out.push(intersectFn(prev, cur));
+        out.push(cur);
+      } else if(prevIn){
+        out.push(intersectFn(prev, cur));
+      }
+    }
+    return out;
+  }
+  function lerp(p1, p2, t){ return { x: p1.x + t*(p2.x-p1.x), y: p1.y + t*(p2.y-p1.y) }; }
+
+  function clipToRect(poly, a, b){
+    poly = clipHalfPlane(poly, p => p.x >= -1e-6, (p1,p2) => lerp(p1,p2,(0-p1.x)/(p2.x-p1.x)));
+    poly = clipHalfPlane(poly, p => p.x <= a+1e-6, (p1,p2) => lerp(p1,p2,(a-p1.x)/(p2.x-p1.x)));
+    poly = clipHalfPlane(poly, p => p.y >= -1e-6, (p1,p2) => lerp(p1,p2,(0-p1.y)/(p2.y-p1.y)));
+    poly = clipHalfPlane(poly, p => p.y <= b+1e-6, (p1,p2) => lerp(p1,p2,(b-p1.y)/(p2.y-p1.y)));
+    return poly;
+  }
+
+  function bandPolygon(k, a, b){
+    const BIG = a + b + 50;
+    // line x+y=k, parametrized as (k/2+t, k/2-t)
+    return [
+      { x: k/2 - BIG, y: k/2 + BIG },
+      { x: k/2 + BIG, y: k/2 - BIG }
+    ];
+  }
+
+  function drawDiagram(data){
+    const { a, b, slats } = data;
+    const scale = 420 / Math.max(a, b);
+    const pad = 16;
+    const W = a*scale + pad*2, H = b*scale + pad*2;
+    const toSvg = p => ({ x: p.x*scale + pad, y: p.y*scale + pad });
+
+    let shapes = `<rect x="${pad}" y="${pad}" width="${a*scale}" height="${b*scale}" fill="none" stroke="var(--mono,#374151)" stroke-width="1.5"/>`;
+
+    slats.forEach(s => {
+      const [p1a, p1b] = bandPolygon(s.k1, a, b);
+      const [p2a, p2b] = bandPolygon(s.k2, a, b);
+      let poly = [p1a, p1b, p2b, p2a];
+      poly = clipToRect(poly, a, b);
+      if(poly.length < 3) return;
+      const pts = poly.map(p => { const sp = toSvg(p); return `${sp.x.toFixed(2)},${sp.y.toFixed(2)}`; }).join(' ');
+      shapes += `<polygon points="${pts}" fill="var(--accent-soft,#eaf0fe)" stroke="var(--mono,#374151)" stroke-width="1"/>`;
+    });
+
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${shapes}</svg>`;
+  }
+
+  function render(){
+    showError(null);
+    let data;
+    try{
+      data = calcLattice();
+    } catch(e){
+      showError(e.message);
+      el('resultGrid').innerHTML = '';
+      el('diagramContainer').innerHTML = '';
+      el('summaryTable').innerHTML = '';
+      el('detailTable').innerHTML = '';
+      return;
+    }
+
+    const results = [
+      { label:'필요 살 개수', value: `${data.slats.length} 개` },
+      { label:'총 길이 (합)', value: fmt(data.totalLength) },
+      { label:'실제 배치 간격', value: fmt(data.P) },
+      { label:'마지막 남는 여백', value: fmt(data.leftover) },
+    ];
+    el('resultGrid').innerHTML = results.map(r =>
+      `<div class="stat"><div class="label">${r.label}</div><div class="value">${r.value}</div></div>`
+    ).join('');
+
+    el('diagramContainer').innerHTML = drawDiagram(data);
+    el('diagramCaption').textContent =
+      `모서리 여백 ${fmt(data.M)}, 배치 간격 ${fmt(data.P)}, 살 폭 ${fmt(data.w)} 기준 (사선 45°). 모서리와 맞닿는 조각은 근사치이므로 실제 재단 전 현장 확인을 권장합니다.`;
+
+    // grouped cut list
+    const groups = new Map();
+    data.slats.forEach(s => {
+      const key = round(s.length, currentUnit==='inch'?2:0);
+      if(!groups.has(key)) groups.set(key, { length: s.length, count:0, corner:false });
+      const g = groups.get(key);
+      g.count++;
+      if(s.isCorner) g.corner = true;
+    });
+    const groupRows = [...groups.values()].sort((x,y) => y.length - x.length);
+    el('summaryTable').innerHTML =
+      `<tr><th>길이</th><th>수량</th><th>비고</th></tr>` +
+      groupRows.map(g => `<tr><td>${fmtLen(g.length)} ${currentUnit}</td><td class="num">${g.count} 개</td><td>${g.corner?'모서리 조각 포함(근사)':''}</td></tr>`).join('');
+
+    el('detailTable').innerHTML =
+      `<tr><th>번호</th><th>길이</th><th>비고</th></tr>` +
+      data.slats.map(s => `<tr><td>${s.index}</td><td class="num">${fmtLen(s.length)} ${currentUnit}</td><td>${s.isCorner?'모서리 조각(근사)':''}</td></tr>`).join('');
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
