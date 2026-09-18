@@ -290,11 +290,11 @@
   function drawDiagram(data){
     const { a, b, slats } = data;
     const scale = 420 / Math.max(a, b);
-    const pad = 16;
-    const W = a*scale + pad*2, H = b*scale + pad*2;
-    const toSvg = p => ({ x: p.x*scale + pad, y: p.y*scale + pad });
+    const padTop = 30, padLeft = 40, padRight = 16, padBottom = 16;
+    const W = a*scale + padLeft + padRight, H = b*scale + padTop + padBottom;
+    const toSvg = p => ({ x: p.x*scale + padLeft, y: p.y*scale + padTop });
 
-    let shapes = `<rect x="${pad}" y="${pad}" width="${a*scale}" height="${b*scale}" fill="none" stroke="var(--mono,#374151)" stroke-width="1.5"/>`;
+    let shapes = `<rect x="${padLeft}" y="${padTop}" width="${a*scale}" height="${b*scale}" fill="none" stroke="var(--mono,#374151)" stroke-width="1.5"/>`;
 
     slats.forEach(s => {
       const [p1a, p1b] = bandPolygon(s.k1, a, b);
@@ -306,7 +306,26 @@
       shapes += `<polygon points="${pts}" fill="var(--accent-soft,#eaf0fe)" stroke="var(--mono,#374151)" stroke-width="1"/>`;
     });
 
-    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${shapes}</svg>`;
+    // 각 살이 시작되는 지점을 위쪽 변(X)과 왼쪽 변(Y)에 표시
+    const tickIds = new Set();
+    let ticks = '';
+    slats.forEach(s => {
+      const k = s.k1;
+      if(tickIds.has(k)) return;
+      tickIds.add(k);
+      if(k <= a + 1e-6){
+        const sx = k*scale + padLeft;
+        ticks += `<line x1="${sx.toFixed(2)}" y1="${padTop-6}" x2="${sx.toFixed(2)}" y2="${padTop}" stroke="var(--mono,#374151)" stroke-width="1"/>`;
+        ticks += `<text x="${sx.toFixed(2)}" y="${padTop-9}" font-size="9" text-anchor="middle" fill="var(--mono,#374151)">${fmtLen(k)}</text>`;
+      }
+      if(k <= b + 1e-6){
+        const sy = k*scale + padTop;
+        ticks += `<line x1="${padLeft-6}" y1="${sy.toFixed(2)}" x2="${padLeft}" y2="${sy.toFixed(2)}" stroke="var(--mono,#374151)" stroke-width="1"/>`;
+        ticks += `<text x="${padLeft-9}" y="${(sy+3).toFixed(2)}" font-size="9" text-anchor="end" fill="var(--mono,#374151)">${fmtLen(k)}</text>`;
+      }
+    });
+
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${shapes}${ticks}</svg>`;
   }
 
   function render(){
@@ -335,7 +354,7 @@
 
     el('diagramContainer').innerHTML = drawDiagram(data);
     el('diagramCaption').textContent =
-      `모서리 여백 ${fmt(data.M)}, 배치 간격 ${fmt(data.P)}, 살 폭 ${fmt(data.w)} 기준 (사선 45°). 모서리와 맞닿는 조각은 근사치이므로 실제 재단 전 현장 확인을 권장합니다.`;
+      `모서리 여백 ${fmt(data.M)}, 배치 간격 ${fmt(data.P)}, 살 폭 ${fmt(data.w)} 기준 (사선 45°). 위쪽 숫자(X)는 윗변, 왼쪽 숫자(Y)는 좌측변에서 각 살이 시작되는 위치입니다. 모서리와 맞닿는 조각은 근사치이므로 실제 재단 전 현장 확인을 권장합니다.`;
 
     // grouped cut list
     const groups = new Map();
