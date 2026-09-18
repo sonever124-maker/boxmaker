@@ -28,13 +28,6 @@
   }
   header h1{ margin:0 0 4px; font-size:22px; }
   header p{ margin:0; color:var(--muted); font-size:14px; }
-  nav.tabs{ display:flex; gap:8px; padding:0; margin-top:14px; }
-  nav.tabs a{
-    display:inline-block; padding:8px 14px; border-radius:8px 8px 0 0;
-    font-size:13px; text-decoration:none; color:var(--muted);
-    border:1px solid var(--border); border-bottom:none; background:var(--bg);
-  }
-  nav.tabs a.active{ color:var(--text); background:var(--panel); font-weight:600; }
   main{
     display:grid; grid-template-columns: 380px 1fr; gap:20px;
     padding:20px 28px 40px; align-items:start;
@@ -95,10 +88,6 @@
 <header>
   <h1>박스 치수 계산기</h1>
   <p>내경(안쪽 치수)을 입력하면 상자 외경과 전개도(재단 치수)를 계산합니다.</p>
-  <nav class="tabs">
-    <a href="index.html" class="active">박스 치수 계산기</a>
-    <a href="lattice.html">래티스 설계</a>
-  </nav>
 </header>
 
 <main>

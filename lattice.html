@@ -26,13 +26,6 @@
   header{ padding:24px 28px 8px; }
   header h1{ margin:0 0 4px; font-size:22px; }
   header p{ margin:0; color:var(--muted); font-size:14px; }
-  nav.tabs{ display:flex; gap:8px; padding:0 28px; margin-top:14px; }
-  nav.tabs a{
-    display:inline-block; padding:8px 14px; border-radius:8px 8px 0 0;
-    font-size:13px; text-decoration:none; color:var(--muted);
-    border:1px solid var(--border); border-bottom:none; background:var(--bg);
-  }
-  nav.tabs a.active{ color:var(--text); background:var(--panel); font-weight:600; }
   main{
     display:grid; grid-template-columns: 380px 1fr; gap:20px;
     padding:20px 28px 40px; align-items:start;
@@ -82,6 +75,17 @@
   details summary{ cursor:pointer; font-size:13px; color:var(--accent); }
   details .inner{ margin-top:10px; max-height:320px; overflow:auto; }
   .note{ font-size:11.5px; color:var(--muted); }
+
+  ul.cutlist-main{ list-style:none; margin:0 0 6px; padding:0; }
+  ul.cutlist-main li{
+    display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    padding:11px 14px; background:var(--bg); border:1px solid var(--border);
+    border-radius:8px; margin-bottom:8px;
+  }
+  ul.cutlist-main .len{ font-size:17px; font-weight:700; }
+  ul.cutlist-main .len small{ font-size:12px; font-weight:400; color:var(--muted); }
+  ul.cutlist-main .cnt{ font-size:15px; font-weight:700; color:var(--accent); white-space:nowrap; }
+  ul.cutlist-main .flag{ font-size:11px; color:var(--muted); margin-right:8px; }
 </style>
 </head>
 <body>
@@ -89,10 +93,6 @@
 <header>
   <h1>래티스 설계</h1>
   <p>사각 틀(가로×세로)에 45° 사선 살을 일정 간격으로 배치할 때, 필요한 살의 개수와 각 조각의 절단 길이를 계산합니다.</p>
-  <nav class="tabs">
-    <a href="index.html">박스 치수 계산기</a>
-    <a href="lattice.html" class="active">래티스 설계</a>
-  </nav>
 </header>
 
 <main>
@@ -147,17 +147,18 @@
     <h2>계산 결과</h2>
     <div class="result-grid" id="resultGrid"></div>
 
+    <div class="section-title">필요 자재 목록 (길이 × 수량)</div>
+    <p class="note" style="margin:-4px 0 10px;">폭 c(살 폭)짜리 원자재를 아래 길이로 자르고, 양 끝을 45°로 재단하면 됩니다.</p>
+    <ul class="cutlist-main" id="cutlistMain"></ul>
+
     <div class="diagram-wrap">
       <div class="section-title">배치도 미리보기</div>
       <div id="diagramContainer"></div>
       <p class="diagram-caption" id="diagramCaption"></p>
     </div>
 
-    <div class="section-title">재단 목록 (길이별 집계)</div>
-    <table class="cutlist" id="summaryTable"></table>
-
     <details>
-      <summary>살 하나하나의 상세 목록 보기</summary>
+      <summary>살 하나하나의 상세 목록 보기 (번호순)</summary>
       <div class="inner">
         <table class="cutlist" id="detailTable"></table>
       </div>
@@ -317,7 +318,7 @@
       showError(e.message);
       el('resultGrid').innerHTML = '';
       el('diagramContainer').innerHTML = '';
-      el('summaryTable').innerHTML = '';
+      el('cutlistMain').innerHTML = '';
       el('detailTable').innerHTML = '';
       return;
     }
@@ -346,9 +347,12 @@
       if(s.isCorner) g.corner = true;
     });
     const groupRows = [...groups.values()].sort((x,y) => y.length - x.length);
-    el('summaryTable').innerHTML =
-      `<tr><th>길이</th><th>수량</th><th>비고</th></tr>` +
-      groupRows.map(g => `<tr><td>${fmtLen(g.length)} ${currentUnit}</td><td class="num">${g.count} 개</td><td>${g.corner?'모서리 조각 포함(근사)':''}</td></tr>`).join('');
+    el('cutlistMain').innerHTML = groupRows.map(g =>
+      `<li>
+        <span class="len">${fmtLen(g.length)} <small>${currentUnit}</small></span>
+        <span>${g.corner ? '<span class="flag">모서리 조각(근사)</span>' : ''}<span class="cnt">${g.count} 개</span></span>
+      </li>`
+    ).join('');
 
     el('detailTable').innerHTML =
       `<tr><th>번호</th><th>길이</th><th>비고</th></tr>` +
